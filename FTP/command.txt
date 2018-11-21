@@ -1,0 +1,10 @@
+临时版：
+没写：
+登陆验证..
+共享内存..
+断点续传..
+
+生成命令：
+gcc -c main.c
+gcc -o myftp main.o -lpthread
+./myftp
