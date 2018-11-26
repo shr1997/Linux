@@ -1,0 +1,2 @@
+gcc main.c v_check_username.c -o myftp -lpthread -lcrypt
+./myftp
