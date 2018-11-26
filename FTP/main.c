@@ -1,21 +1,22 @@
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include<stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include <mysql/mysql.h>
 #include <wchar.h>
 #include <locale.h>
 #include <semaphore.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include "server_control.h"
+
 
 #pragma mark                                                                        状态码
-#define LOGIN          1
+#define LOGIN           1
 #define UPLOAD          002
 #define DOWNLOAD        010
 #define MKDIR           011
@@ -34,9 +35,6 @@
 #define ASCII           1
 #define BIT             2
 
-#pragma mark                                                                        总访问数
-static int countt = 0;
-static int countt_history = 0;
 
 //#pragma mark  - semaphore
 //static int sema = 0;
@@ -44,10 +42,10 @@ static int countt_history = 0;
 #pragma mark                                                                        协议 头
 typedef struct NYN {
     int status;                         //状态码s        // 1-----登录//002-----上传//010-----下载//011-----创建dir
-                                                        //100-----删除dir//101-----显示当前路径//110-----切换目录
-                                                        //111-----查看当前所有文件
+    //100-----删除dir//101-----显示当前路径//110-----切换目录
+    //111-----查看当前所有文件
     int mode;                           //上传下载选定模式//1-----ansic//2-----bit//3-----非上传下载
-}CW;
+} CW;
 typedef struct MCM {                    //s为1时选用
     char username[10];
     char password[10];
@@ -56,7 +54,7 @@ typedef struct SQS {                    //s为2是选用
     char content[MMAX];//文件
 } BX;
 #pragma mark                                                                        协议 体
-typedef struct NLM{
+typedef struct NLM {
     CW _n;                               //协议头
     union {
         MN _m;
@@ -100,13 +98,13 @@ void list_name_now() {
 #pragma mark - count_history()                                                      总 访问数                             完成
 
 void count_history() {
-    printf("Historical number of vistors:%i\n",countt_history);
+    printf("Historical number of vistors:%i\n", countt_history);
 }
 
 #pragma mark - count()                                                              获取 当前人数                          完成
 
 void count() {
-    printf("Number of active user:%i\n",countt);
+    printf("Number of active user:%i\n", countt);
 }
 
 #pragma mark - init_socket()                                                        初始化 套接字-返回 监听套接字            完成
@@ -154,56 +152,56 @@ int MyAccept(int listen_socket) {                       //返回套接字状态
 
 #pragma mark - Login()                                                              登录-校验
 
-void Login(int client_socket,struct NLM *nlm){
+void Login(int client_socket, struct NLM *nlm) {
     countt++;
 
 }
 
 #pragma mark - Upload()                                                             上传                                 Done
 
-void Upload(int client_socket,struct NLM *nlm){
-    const char * a="can't open";
+void Upload(int client_socket, struct NLM *nlm) {
+    const char *a = "can't open";
 
-    FILE* fd;
+    FILE *fd;
     int nbyte;
     struct NLM tt;
     bzero(&tt, sizeof(BZ));
 
-    printf("get filename : [ %s ]\n",nlm->_b.content);
+    printf("get filename : [ %s ]\n", nlm->_b.content);
 
-    if (ASCII==nlm->_n.mode){
-        if((fd=fopen(nlm->_b.content,"r")) < 0) {                                  //ACSII---error
+    if (ASCII == nlm->_n.mode) {
+        if ((fd = fopen(nlm->_b.content, "r")) < 0) {                                  //ACSII---error
             printf("Open file Error!\n");
-            strcpy(tt._b.content,a);
-            if(write(client_socket, &tt, sizeof(tt)) <0) {
+            strcpy(tt._b.content, a);
+            if (write(client_socket, &tt, sizeof(tt)) < 0) {
                 printf("Write Error!\n");
-                return ;
+                return;
             }
         }
-        if (-1==chmod(nlm->_b.content,S_IRUSR|S_IWUSR|S_IROTH)){
+        if (-1 == chmod(nlm->_b.content, S_IRUSR | S_IWUSR | S_IROTH)) {
             printf("can't set.");
         };
-        while((nbyte=(int)read(client_socket, &tt, sizeof(tt))) > 0) {
-            if(fwrite(tt._b.content,MMAX,1,fd) < 0) {
+        while ((nbyte = (int) read(client_socket, &tt, sizeof(tt))) > 0) {
+            if (fwrite(tt._b.content, MMAX, 1, fd) < 0) {
                 printf("Write Error!\n");
                 fclose(fd);
                 return;
             }
         }
-    }else if(BIT==nlm->_n.mode){
-        if((fd=fopen(nlm->_b.content,"rb")) < 0) {                                  //ACSII---error
+    } else if (BIT == nlm->_n.mode) {
+        if ((fd = fopen(nlm->_b.content, "rb")) < 0) {                                  //ACSII---error
             printf("Open file Error!\n");
-            strcpy(tt._b.content,a);
-            if(write(client_socket, &tt, sizeof(tt)) <0) {
+            strcpy(tt._b.content, a);
+            if (write(client_socket, &tt, sizeof(tt)) < 0) {
                 printf("Write Error!\n");
-                return ;
+                return;
             }
         }
-        if (-1==chmod(nlm->_b.content,S_IRUSR|S_IWUSR|S_IROTH)){
+        if (-1 == chmod(nlm->_b.content, S_IRUSR | S_IWUSR | S_IROTH)) {
             printf("can't set.");
         };
-        while((nbyte=(int)read(client_socket, &tt, sizeof(tt))) > 0) {
-            if(fwrite(tt._b.content,MMAX,1,fd) < 0) {
+        while ((nbyte = (int) read(client_socket, &tt, sizeof(tt))) > 0) {
+            if (fwrite(tt._b.content, MMAX, 1, fd) < 0) {
                 printf("Write Error!\n");
                 fclose(fd);
                 return;
@@ -214,44 +212,44 @@ void Upload(int client_socket,struct NLM *nlm){
 
 #pragma mark - Download()                                                           下载                                 Done
 
-void Download(int client_socket,struct NLM *nlm){
+void Download(int client_socket, struct NLM *nlm) {
 
-    const char * a="can't open";
+    const char *a = "can't open";
 
-    FILE * fd;
+    FILE *fd;
     int nbyte;
     struct NLM tt;
     bzero(&tt, sizeof(BZ));
 
-    printf("get filename : [ %s ]\n",nlm->_b.content);
+    printf("get filename : [ %s ]\n", nlm->_b.content);
 
-    if (ASCII==nlm->_n.mode){
-        if((fd=fopen(nlm->_b.content,"r")) < 0) {                                  //ACSII---error
+    if (ASCII == nlm->_n.mode) {
+        if ((fd = fopen(nlm->_b.content, "r")) < 0) {                                  //ACSII---error
             printf("Open file Error!\n");
-            strcpy(tt._b.content,a);
-            if(write(client_socket, &tt, sizeof(tt)) <0) {
+            strcpy(tt._b.content, a);
+            if (write(client_socket, &tt, sizeof(tt)) < 0) {
                 printf("Write Error!\n");
-                return ;
+                return;
             }
         }
-        while(0<(nbyte=(int)fread(tt._b.content,MMAX,1,fd))){
-            if(write(client_socket, tt._b.content, MMAX) < 0) {
+        while (0 < (nbyte = (int) fread(tt._b.content, MMAX, 1, fd))) {
+            if (write(client_socket, tt._b.content, MMAX) < 0) {
                 printf("Write Error! At commd_put 1!\n");
                 fclose(fd);
                 return;
             }
         }
-    } else if (BIT==nlm->_n.mode){
-        if((fd=fopen(nlm->_b.content,"rb")) < 0) {                                  //BIT---error
+    } else if (BIT == nlm->_n.mode) {
+        if ((fd = fopen(nlm->_b.content, "rb")) < 0) {                                  //BIT---error
             printf("Open file Error!\n");
-            strcpy(tt._b.content,a);
-            if(write(client_socket, &tt, sizeof(tt)) <0) {
+            strcpy(tt._b.content, a);
+            if (write(client_socket, &tt, sizeof(tt)) < 0) {
                 printf("Write Error!\n");
-                return ;
+                return;
             }
         }
-        while(0<(nbyte=(int)fread(tt._b.content,MMAX,1,fd))){
-            if(write(client_socket, tt._b.content, MMAX) < 0) {
+        while (0 < (nbyte = (int) fread(tt._b.content, MMAX, 1, fd))) {
+            if (write(client_socket, tt._b.content, MMAX) < 0) {
                 printf("Write Error! At commd_put 1!\n");
                 fclose(fd);
                 return;
@@ -264,37 +262,32 @@ void Download(int client_socket,struct NLM *nlm){
 
 #pragma mark - Mkdir()                                                              创建 DIR
 
-void Mkdir(int client_socket,struct NLM *nlm){
-    const char * b="ok!";
+void Mkdir(int client_socket, struct NLM *nlm) {
+    const char *b = "ok!";
     struct NLM tt;
     bzero(&tt, sizeof(BZ));
     char DirName[256];
-    strcpy(DirName,nlm->_b.content);
-    int i,length = (int)strlen(DirName);
-    if(DirName[length-1]!='/')
-        strcat(DirName,"/");
-    length = (int)strlen(DirName);
-    for(i=1;i<length;i++)
-    {
-        if(DirName[i]=='/')
-        {
+    strcpy(DirName, nlm->_b.content);
+    int i, length = (int) strlen(DirName);
+    if (DirName[length - 1] != '/')
+        strcat(DirName, "/");
+    length = (int) strlen(DirName);
+    for (i = 1; i < length; i++) {
+        if (DirName[i] == '/') {
             DirName[i] = 0;
-            if(access(DirName,F_OK) != 0)                   //bucunzai
+            if (access(DirName, F_OK) != 0)                   //bucunzai
             {
-                if(mkdir(DirName,0777) == -1)
-                {
-                    return ;
+                if (mkdir(DirName, 0777) == -1) {
+                    return;
                 }
                 int a = access(DirName, F_OK);
-                if(a ==-1)
-                {
-                    mkdir(DirName,0777);
-                    return ;
-                }
-                else{
-                    strcpy(tt._b.content,b);
-                    write(client_socket,&tt, sizeof(tt));
-                    return ;
+                if (a == -1) {
+                    mkdir(DirName, 0777);
+                    return;
+                } else {
+                    strcpy(tt._b.content, b);
+                    write(client_socket, &tt, sizeof(tt));
+                    return;
                 }
 
             }
@@ -304,33 +297,32 @@ void Mkdir(int client_socket,struct NLM *nlm){
 
 #pragma remove_dir()                                                                shanchudir                          Done
 
-int remove_dir(const char * dir)
-{
+int remove_dir(const char *dir) {
     char cur_dir[] = ".";
     char up_dir[] = "..";
     char dir_name[128];
-    DIR * dirp;
-    struct dirent * dp;
+    DIR *dirp;
+    struct dirent *dp;
     struct stat dir_stat;
 
     //参数传递进来的目录不存在，直接返回
-    if ( 0 != access(dir, F_OK) ) {
+    if (0 != access(dir, F_OK)) {
         return 0;
     }
 
     //获取目录属性失败，返回错误
-    if ( 0 > stat(dir, &dir_stat) ) {
+    if (0 > stat(dir, &dir_stat)) {
         perror("get directory stat error");
         return -1;
     }
 
-    if ( S_ISREG(dir_stat.st_mode) ) {   //普通文件直接删除
+    if (S_ISREG(dir_stat.st_mode)) {   //普通文件直接删除
         remove(dir);
-    } else if ( S_ISDIR(dir_stat.st_mode) ) {    //目录文件，递归删除目录中内容
-                dirp = opendir(dir);
-        while ( (dp=readdir(dirp)) != NULL ) {
+    } else if (S_ISDIR(dir_stat.st_mode)) {    //目录文件，递归删除目录中内容
+        dirp = opendir(dir);
+        while ((dp = readdir(dirp)) != NULL) {
             //忽略 . 和 ..
-            if ( (0 == strcmp(cur_dir, dp->d_name)) || (0 == strcmp(up_dir, dp->d_name)) ) {
+            if ((0 == strcmp(cur_dir, dp->d_name)) || (0 == strcmp(up_dir, dp->d_name))) {
                 continue;
             }
 
@@ -348,59 +340,58 @@ int remove_dir(const char * dir)
 
 #pragma mark - Rmdir()                                                              删除 DIR                             Done
 
-void Rmdir(int client_socket,struct NLM *nlm){
-    const char * a="successful remove.";
+void Rmdir(int client_socket, struct NLM *nlm) {
+    const char *a = "successful remove.";
     struct NLM tt;
     bzero(&tt, sizeof(BZ));
-    if(0==remove_dir(nlm->_b.content)){
-        write(client_socket,&tt, sizeof(tt));
+    if (0 == remove_dir(nlm->_b.content)) {
+        write(client_socket, &tt, sizeof(tt));
         return;
     }
 }
 
 #pragma mark - Pwd()                                                                显示 当前路径                         Done
 
-void Pwd(int client_socket,struct NLM *nlm){
+void Pwd(int client_socket, struct NLM *nlm) {
     struct NLM tt;
     bzero(&tt, sizeof(BZ));
 
-    if (NULL==getcwd(tt._b.content,MMAX)){
+    if (NULL == getcwd(tt._b.content, MMAX)) {
         perror("Get cerrent working directory fail.\n");
         return;
     }
-    tt._n.status=PWD;
-    write(client_socket,&tt, sizeof(tt));
+    tt._n.status = PWD;
+    write(client_socket, &tt, sizeof(tt));
     return;
 }
 
 #pragma mark - Ls()                                                                 显示 当前文件夹                        Done
 
-void Ls(int client_socket,struct NLM *nlm){
-    DIR * my_dir=NULL;
-    struct dirent *structdirent=NULL;
+void Ls(int client_socket, struct NLM *nlm) {
+    DIR *my_dir = NULL;
+    struct dirent *structdirent = NULL;
     struct stat statbuf;
     struct NLM tt;
     bzero(&tt, sizeof(BZ));
 
-    if (NULL==(my_dir=opendir(nlm->_b.content))){                              //open dir
-        fprintf(stderr,"can not open directory: %s\n",nlm->_b.content);
+    if (NULL == (my_dir = opendir(nlm->_b.content))) {                              //open dir
+        fprintf(stderr, "can not open directory: %s\n", nlm->_b.content);
         return;
     }
 
     chdir(nlm->_b.content);
-    while (NULL!=(structdirent=readdir(my_dir))){
-        lstat(structdirent->d_name,&statbuf);
-        if (S_ISDIR(statbuf.st_mode)){                                          //judge DIR or not
-            if (0==strcmp(".",structdirent->d_name)||
-                0==strcmp("..",structdirent->d_name))
+    while (NULL != (structdirent = readdir(my_dir))) {
+        lstat(structdirent->d_name, &statbuf);
+        if (S_ISDIR(statbuf.st_mode)) {                                          //judge DIR or not
+            if (0 == strcmp(".", structdirent->d_name) ||
+                0 == strcmp("..", structdirent->d_name))
                 continue;
-            if (0>(sprintf(tt._b.content,"%c%s\n",'\\',structdirent->d_name))){
+            if (0 > (sprintf(tt._b.content, "%c%s\n", '\\', structdirent->d_name))) {
                 printf("Sprintf Error!\n");
                 return;
             }
-            tt._n.status=LS;                                                    //set status
-            if(write(client_socket, &tt, sizeof(tt)) < 0 )
-            {
+            tt._n.status = LS;                                                    //set status
+            if (write(client_socket, &tt, sizeof(tt)) < 0) {
                 printf("Write Error!\n");
                 return;
             }
@@ -412,25 +403,25 @@ void Ls(int client_socket,struct NLM *nlm){
 
 #pragma mark - Cd()                                                                 切换 目录                             Done
 
-void Cd(int client_socket,struct NLM *nlm){
-    DIR * my_dir=NULL;
+void Cd(int client_socket, struct NLM *nlm) {
+    DIR *my_dir = NULL;
     struct NLM tt;
 
     bzero(&tt, sizeof(BZ));
-    if (NULL==(my_dir=opendir(nlm->_b.content))){
-        fprintf(stderr,"cannot open directory: %s\n",nlm->_b.content);
+    if (NULL == (my_dir = opendir(nlm->_b.content))) {
+        fprintf(stderr, "cannot open directory: %s\n", nlm->_b.content);
         return;
     }
     chdir(nlm->_b.content);
-    strcpy(tt._b.content,"dir has changed.");
-    tt._n.status=CD;
-    write(client_socket,&tt, sizeof(tt));
+    strcpy(tt._b.content, "dir has changed.");
+    tt._n.status = CD;
+    write(client_socket, &tt, sizeof(tt));
 }
 
 #pragma mark - Bye()                                                                退出                                 完成
 
-void Bye(int client_socket,struct NLM *nlm){
-    if (88==nlm->_n.status){
+void Bye(int client_socket, struct NLM *nlm) {
+    if (88 == nlm->_n.status) {
         countt--;
     }
 }
@@ -438,38 +429,38 @@ void Bye(int client_socket,struct NLM *nlm){
 #pragma mark - Handle_Thread()                                                      线程 调用函数处理用户请求                完成
 
 void *Handle_Thread(void *pVoid) {
-    int client_socket=(int)pVoid;
+    int client_socket = (int) pVoid;
     struct NLM tmp;
-    while(1){
-        int ret=(int)read(client_socket,&tmp, sizeof(tmp));
-        if (-1==ret){
+    while (1) {
+        int ret = (int) read(client_socket, &tmp, sizeof(tmp));
+        if (-1 == ret) {
             perror("read");
             break;
         }
-        switch (tmp._n.status){
+        switch (tmp._n.status) {
             case LOGIN:
-                Login(client_socket,&tmp);
+                Login(client_socket, &tmp);
                 break;
             case UPLOAD:
-                Upload(client_socket,&tmp);
+                Upload(client_socket, &tmp);
                 break;
             case DOWNLOAD:
-                Download(client_socket,&tmp);
+                Download(client_socket, &tmp);
                 break;
             case MKDIR:
-                Mkdir(client_socket,&tmp);
+                Mkdir(client_socket, &tmp);
                 break;
             case RMDIR:
-                Rmdir(client_socket,&tmp);
+                Rmdir(client_socket, &tmp);
                 break;
             case PWD:
-                Pwd(client_socket,&tmp);
+                Pwd(client_socket, &tmp);
                 break;
             case LS:
-                Ls(client_socket,&tmp);
+                Ls(client_socket, &tmp);
                 break;
             case CD:
-                Cd(client_socket,&tmp);
+                Cd(client_socket, &tmp);
                 break;
             case BYE:
                 break;
