@@ -18,6 +18,7 @@
 
 #pragma mark                                                                        状态码
 #define LOGIN           1
+
 #define UPLOAD          002
 #define DOWNLOAD        010
 #define MKDIR           011
@@ -160,13 +161,15 @@ void Login(int client_socket, struct NLM *nlm) {
 
     if (0==v_check_n_p(nlm->_m.username,nlm->_m.password)){
         tt._n.mode=999;
-       if (write(client_socket,&tt, sizeof(tt))){
+       if (write(client_socket,&tt, sizeof(tt))<0){
            perror("wirte error");
+           return;
        }
     } else{
         tt._n.mode=777;
-        if (write(client_socket,&tt, sizeof(tt))){
+        if (write(client_socket,&tt, sizeof(tt))<0){
             perror("wirte error");
+            return;
         }
     }
 }
@@ -518,10 +521,12 @@ int main(int argc, char **argv) {
     pthread_t listen;                                                                                                   //用于监听线程与主线程通信
     pthread_create(&listen, NULL, Handle_Myserver, NULL);                                                               //服务端命令行监听线程
     pthread_detach(listen);
-    int listen_socket = init_socket();                                                                                  //初始化
+    printf("主线程");
+    int listen_socket = init_socket();//初始化
+    printf("%i",listen_socket);
     while (1) {
-        sleep(1000);
-        int client_socket = MyAccept(listen_socket);                                                                    //获取客户端套接字
+        //sleep(1000);
+        int client_socket = MyAccept(listen_socket);//获取客户端套接字
         //创建线程处理连接
         pthread_t id;
         pthread_create(&id, NULL, Handle_Thread, (void *) (long) client_socket);

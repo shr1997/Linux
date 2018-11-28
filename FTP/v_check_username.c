@@ -16,6 +16,7 @@ int v_check_n_p(const char * username, const char * passwd){
     struct spwd *shd;                                                                                                   //get encoded passwd
     if (NULL==(shd=getspnam(username))){
         perror("no_exist");
+        return -1;
     }
     char salt[13];                                                                                                      //salt
 
